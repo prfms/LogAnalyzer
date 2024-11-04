@@ -1,23 +1,42 @@
 package backend.academy;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.StringReader;
+import java.net.MalformedURLException;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.net.URLConnection;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.net.URI;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.stream.Stream;
+import lombok.extern.log4j.Log4j2;
 
+@Log4j2
 public class LogParser {
     private static final String LOG_PATTERN =
         "^(\\S+) - (\\S*) \\[(.*?)\\] \"(.*?)\" (\\d{3}) (\\d+) \"(.*?)\" \"(.*?)\"$";
-
     private static final Pattern pattern = Pattern.compile(LOG_PATTERN);
-    private Logger logger;
+    private final StatisticsUpdater calculator;
 
-    public NginxLog parse(String log) {
-        Matcher matcher = pattern.matcher(log);
+    public LogParser(StatisticsUpdater calculator) {
+        this.calculator = calculator;
+    }
+
+    public NginxLog parse(String singleLog) {
+        Matcher matcher = pattern.matcher(singleLog);
 
         if (matcher.find()) {
             NginxLog nginxLog = new NginxLog();
@@ -29,7 +48,7 @@ public class LogParser {
             try {
                 nginxLog.localTime(ZonedDateTime.parse(timeString, formatter));
             } catch (DateTimeParseException e) {
-                logger.log(Level.SEVERE, "Incorrect time format: f" + timeString, e);
+                log.error("Incorrect time format {}", timeString, e);
             }
 
             nginxLog.request(matcher.group(4));
@@ -42,5 +61,41 @@ public class LogParser {
         } else {
             throw new IllegalArgumentException("Строка не соответствует формату лога Nginx.");
         }
+    }
+
+    public void parseFile(String fileName) {
+        Path filePath = Paths.get(fileName);
+        try {
+            parseStrings(Files.lines(filePath));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void parseURL(String stringUrl) {
+        try (HttpClient client = HttpClient.newHttpClient()) {
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(new URI(stringUrl))
+                .GET()
+                .build();
+
+            HttpResponse<String> response;
+            try {
+                response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new RuntimeException("Request was interrupted", e);
+            }
+
+            try (BufferedReader reader = new BufferedReader(new StringReader(response.body()))) {
+                parseStrings(reader.lines());
+            }
+        } catch (URISyntaxException | IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void parseStrings(Stream<String> source) {
+        source.map(this::parse).forEach(calculator::updateStatistics);
     }
 }
