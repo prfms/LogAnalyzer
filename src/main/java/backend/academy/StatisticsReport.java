@@ -30,41 +30,98 @@ public class StatisticsReport {
         requestNumber = 0L;
     }
 
-    public void buildMarkdownReport() {
-        File file = new File("src/main/resources/markdown.md");
-        try {
-            try (FileWriter fileWriter = new FileWriter(file)) {
-                String heading1 = "### General information\n";
-                String generalInfo = String.format("""
-                    | Metrics                   | Value          |
-                    |:-------------------------:|:--------------:|
-                    | Number of requests        | %15d           |
-                    | Average answer size       | %13.2f         |
-                    | 95th percentile of answer | %13.2f         |
-                    """, requestNumber, getAverageAnswerSize(), percentileSizeAnswer(95));
+    public void writeAdocFile() {
+        generateReport(
+            "src/main/resources/report.adoc",
+            "=== General Information ===\n\n|===",
+            "=== Frequency of Client Requests ===\n\n|===",
+            "=== Answer Codes ===\n\n|===",
+            "     ",
+             "    ",
+            "|==="
+        );
+    }
 
-                String heading2 = "### Frequency of client requests\n";
-                String requestInfo = String.format("""
-                    | Requests          | Quantity       |
-                    |:-----------------:|:--------------:|
-                    |%15s               | %15s           |
-                    |%15s               | %15s           |
-                    |%15s               | %15s           |
-                    """, getMostFrequentSources().getFirst().getKey(), getMostFrequentSources().getFirst().getValue(),
-                    getMostFrequentSources().get(1).getKey(), getMostFrequentSources().get(1).getValue(),
-                    getMostFrequentSources().get(2).getKey(), getMostFrequentSources().get(2).getValue());
+    public void writeMarkdownFile() {
+        generateReport(
+            "src/main/resources/report.md",
+            "### General information\n",
+            "### Frequency of client requests\n",
+            "### Answer codes\n",
+            "|:--------------:|:----------:|",
+            "|:-------------:|:-----------:|:----:|",
+            ""
+        );
+    }
 
-                fileWriter.write(heading1);
-                fileWriter.write(generalInfo);
-                fileWriter.write(heading2);
-                fileWriter.write(requestInfo);
+    private void generateReport(
+        String filePath,
+        String generalInfoHeader,
+        String requestInfoHeader,
+        String answerCodesHeader,
+        String separator,
+        String codeInfoSeparator,
+        String endOfTable
+    ) {
+        File file = new File(filePath);
+        try (FileWriter fileWriter = new FileWriter(file)) {
+            String generalInfo = String.format("""
+                    %s
+                    | Metrics                   | Value
+                    %s
+                    | Number of requests        | %-15d
+                    | Average answer size       | %-13.2f
+                    | 95th percentile of answer | %-13.2f
+                    %s
+                    """, generalInfoHeader, separator,
+                requestNumber, getAverageAnswerSize(), percentileSizeAnswer(95),
+                endOfTable
+            );
 
-                fileWriter.flush();
-            }
+            String requestInfo = String.format("""
+                    %s
+                    | Requests  | Frequency
+                    %s
+                    | %-27s | %-15s
+                    | %-27s | %-15s
+                    | %-27s | %-15s
+                    %s
+                    """, requestInfoHeader,separator,
+                getMostFrequentSources().get(0).getKey(), getMostFrequentSources().get(0).getValue(),
+                getMostFrequentSources().get(1).getKey(), getMostFrequentSources().get(1).getValue(),
+                getMostFrequentSources().get(2).getKey(), getMostFrequentSources().get(2).getValue(),
+                endOfTable
+                );
+
+            String codeInfo = String.format("""
+                    %s
+                    | Code | Meaning | Frequency
+                    %s
+                    | %-4d | %-27s   | %-9d
+                    | %-4d | %-27s   | %-9d
+                    | %-4d | %-27s   | %-9d
+                    %s
+                    """, answerCodesHeader, codeInfoSeparator,
+                getMostFrequentAnswerCode().get(0).getKey(),
+                HttpStatusCode.getStatusMessage(getMostFrequentAnswerCode().get(0).getKey()),
+                getMostFrequentAnswerCode().get(0).getValue(),
+                getMostFrequentAnswerCode().get(1).getKey(),
+                HttpStatusCode.getStatusMessage(getMostFrequentAnswerCode().get(1).getKey()),
+                getMostFrequentAnswerCode().get(1).getValue(),
+                getMostFrequentAnswerCode().get(2).getKey(),
+                HttpStatusCode.getStatusMessage(getMostFrequentAnswerCode().get(2).getKey()),
+                getMostFrequentAnswerCode().get(2).getValue(),
+                endOfTable
+            );
+
+            fileWriter.write(generalInfo);
+            fileWriter.write(requestInfo);
+            fileWriter.write(codeInfo);
+
+            fileWriter.flush();
         } catch (IOException e) {
             log.error("IOException while writing to file", e);
         }
-
     }
     public List<Map.Entry<Integer, Integer>> getMostFrequentAnswerCode() {
         mostFrequentAnswerCode.sort((a,b) -> b.getValue() - a.getValue());

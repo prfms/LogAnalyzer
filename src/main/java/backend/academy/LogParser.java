@@ -2,12 +2,8 @@ package backend.academy;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.io.StringReader;
-import java.net.MalformedURLException;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLConnection;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -29,10 +25,10 @@ public class LogParser {
     private static final String LOG_PATTERN =
         "^(\\S+) - (\\S*) \\[(.*?)\\] \"(.*?)\" (\\d{3}) (\\d+) \"(.*?)\" \"(.*?)\"$";
     private static final Pattern pattern = Pattern.compile(LOG_PATTERN);
-    private final StatisticsUpdater calculator;
+    private final StatisticsUpdater statisticsUpdater;
 
-    public LogParser(StatisticsUpdater calculator) {
-        this.calculator = calculator;
+    public LogParser(StatisticsUpdater updater) {
+        this.statisticsUpdater = updater;
     }
 
     public NginxLog parse(String singleLog) {
@@ -96,6 +92,6 @@ public class LogParser {
     }
 
     private void parseStrings(Stream<String> source) {
-        source.map(this::parse).forEach(calculator::updateStatistics);
+        source.map(this::parse).forEach(statisticsUpdater::updateStatistics);
     }
 }
