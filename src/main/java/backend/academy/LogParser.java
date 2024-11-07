@@ -26,12 +26,16 @@ public class LogParser {
         "^(\\S+) - (\\S*) \\[(.*?)\\] \"(.*?)\" (\\d{3}) (\\d+) \"(.*?)\" \"(.*?)\"$";
     private static final Pattern pattern = Pattern.compile(LOG_PATTERN);
     private final StatisticsUpdater statisticsUpdater;
+    private final ZonedDateTime from;
+    private final ZonedDateTime to;
 
-    public LogParser(StatisticsUpdater updater) {
+    public LogParser(StatisticsUpdater updater, ZonedDateTime from, ZonedDateTime to) {
         this.statisticsUpdater = updater;
+        this.from = from;
+        this.to = to;
     }
 
-    public NginxLog parse(String singleLog) {
+    private NginxLog parse(String singleLog) {
         Matcher matcher = pattern.matcher(singleLog);
 
         if (matcher.find()) {
@@ -91,7 +95,11 @@ public class LogParser {
         }
     }
 
+    private Stream<NginxLog> filterLogs(Stream<NginxLog> stream) {
+        return stream.filter(log -> log.localTime().isAfter(from) && log.localTime().isBefore(to));
+    }
+
     private void parseStrings(Stream<String> source) {
-        source.map(this::parse).forEach(statisticsUpdater::updateStatistics);
+        filterLogs(source.map(this::parse)).forEach(statisticsUpdater::updateStatistics);
     }
 }
