@@ -25,7 +25,7 @@ public class Main {
     private ZonedDateTime to = null;
 
     @Parameter(names = "--format", description = "Output format: markdown or adoc")
-    private String format = "markdown"; // значение по умолчанию
+    private String format = "markdown";
 
     @Parameter(names = "--help", help = true)
     private boolean help;

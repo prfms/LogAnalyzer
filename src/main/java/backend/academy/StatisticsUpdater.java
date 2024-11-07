@@ -9,7 +9,7 @@ public class StatisticsUpdater {
 
     public void updateStatistics(NginxLog nginxLog) {
         report.incrementRequestNumber();
-        report.addSource(nginxLog.request());
+        report.addSource(nginxLog.requestSource());
         report.addAnswerCode(nginxLog.status());
         report.addAnswerSize(nginxLog.bytesSent());
     }

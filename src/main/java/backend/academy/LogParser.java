@@ -23,7 +23,7 @@ import lombok.extern.log4j.Log4j2;
 @Log4j2
 public class LogParser {
     private static final String LOG_PATTERN =
-        "^(\\S+) - (\\S*) \\[(.*?)\\] \"(.*?)\" (\\d{3}) (\\d+) \"(.*?)\" \"(.*?)\"$";
+        "^(\\S+) - (\\S*) \\[(.*?)\\] \"(.*?) (.*?)\" (\\d{3}) (\\d+) \"(.*?)\" \"(.*?)\"$";
     private static final Pattern pattern = Pattern.compile(LOG_PATTERN);
     private final StatisticsUpdater statisticsUpdater;
     private final ZonedDateTime from;
@@ -51,11 +51,12 @@ public class LogParser {
                 log.error("Incorrect time format {}", timeString, e);
             }
 
-            nginxLog.request(matcher.group(4));
-            nginxLog.status(Integer.parseInt(matcher.group(5)));
-            nginxLog.bytesSent(Integer.parseInt(matcher.group(6)));
-            nginxLog.httpReferer(matcher.group(7).equals("-") ? null : matcher.group(7));
-            nginxLog.httpUserAgent(matcher.group(8));
+            nginxLog.requestMethod(matcher.group(4));
+            nginxLog.requestSource(matcher.group(5));
+            nginxLog.status(Integer.parseInt(matcher.group(6)));
+            nginxLog.bytesSent(Integer.parseInt(matcher.group(7)));
+            nginxLog.httpReferer(matcher.group(8).equals("-") ? null : matcher.group(8));
+            nginxLog.httpUserAgent(matcher.group(9));
 
             return nginxLog;
         } else {
