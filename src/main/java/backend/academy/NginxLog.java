@@ -1,6 +1,5 @@
 package backend.academy;
 
-import jdk.jfr.Unsigned;
 import lombok.Getter;
 import lombok.Setter;
 import java.time.ZonedDateTime;

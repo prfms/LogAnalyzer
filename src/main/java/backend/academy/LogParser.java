@@ -15,6 +15,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
+import java.util.Map;
+import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Stream;
@@ -28,12 +30,26 @@ public class LogParser {
     private final StatisticsUpdater statisticsUpdater;
     private final ZonedDateTime from;
     private final ZonedDateTime to;
+    private final String filterField;
+    private String filterValue;
 
-    public LogParser(StatisticsUpdater updater, ZonedDateTime from, ZonedDateTime to) {
+    public LogParser(StatisticsUpdater updater, ZonedDateTime from, ZonedDateTime to, String filterField, String filterValue) {
         this.statisticsUpdater = updater;
         this.from = from;
         this.to = to;
+        this.filterField = filterField;
+        this.filterValue = filterValue;
     }
+
+    private final Map<String, Predicate<NginxLog>> filterPredicates = Map.of(
+        "address", log -> log.remoteAddress() != null && log.remoteAddress().contains(filterValue),
+        "user", log -> log.remoteUser() != null && log.remoteUser().contains(filterValue),
+        "method", log -> log.requestMethod() != null && log.requestMethod().equalsIgnoreCase(filterValue),
+        "source", log -> log.requestSource() != null && log.requestSource().contains(filterValue),
+        "status", log -> Integer.toString(log.status()).equals(filterValue),
+        "referer", log -> log.httpReferer() != null && log.httpReferer().contains(filterValue),
+        "agent", log -> log.httpUserAgent() != null && log.httpUserAgent().contains(filterValue)
+    );
 
     private NginxLog parse(String singleLog) {
         Matcher matcher = pattern.matcher(singleLog);
@@ -97,7 +113,20 @@ public class LogParser {
     }
 
     private Stream<NginxLog> filterLogs(Stream<NginxLog> stream) {
-        return stream.filter(log -> log.localTime().isAfter(from) && log.localTime().isBefore(to));
+        Stream<NginxLog> filteredStream = Stream.empty();
+
+        if (from != null && to != null) {
+             filteredStream = stream.filter(log -> log.localTime().isAfter(from) && log.localTime().isBefore(to));
+        }
+
+        if (filterField != null) {
+            Predicate<NginxLog> fieldPredicate = filterPredicates.get(filterField);
+            if (fieldPredicate != null) {
+                filteredStream = filteredStream.filter(fieldPredicate);
+            }
+        }
+
+        return filteredStream;
     }
 
     private void parseStrings(Stream<String> source) {
