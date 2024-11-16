@@ -1,18 +1,20 @@
 package backend.academy;
 
+import java.time.ZonedDateTime;
 import lombok.Getter;
 import lombok.Setter;
-import java.time.ZonedDateTime;
 
 @Getter @Setter
 public class NginxLog {
     private String remoteAddress;
     private String remoteUser;
     private ZonedDateTime localTime;
-    private String requestMethod;
-    private String requestSource;
+    @Getter @Setter
+    private HttpRequest httpRequest;
     private int status;
     private int bytesSent;
     private String httpReferer;
     private String httpUserAgent;
+
+    public record HttpRequest(String method, String uri, String version) {}
 }

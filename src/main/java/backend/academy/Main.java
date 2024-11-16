@@ -8,6 +8,8 @@ import java.net.URISyntaxException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
+import java.util.ArrayList;
+import java.util.List;
 
 @Log4j2
 public class Main {
@@ -27,7 +29,8 @@ public class Main {
     @Parameter(names = "--format", description = "Output format: markdown or adoc")
     private static String format = "markdown";
 
-    @Parameter(names = "--filter-field", description = "Field of nginx log to apply filter to. Options: address, user, method, source, status, referer, agent")
+    @Parameter(names = "--filter-field",
+        description = "Field of nginx log to apply filter to. Options: address, user, method, source, status, referer, agent")
     private static String filterField = null;
 
     @Parameter(names = "--filter-value", description = "Value that must be in filter field")
@@ -35,6 +38,8 @@ public class Main {
 
     @Parameter(names = "--help", help = true)
     private boolean help;
+
+    private final String globalPath = ".";
 
     public static void main(String[] args) throws IOException, URISyntaxException {
 // .\src\main\resources\logs_samples.txt
@@ -59,7 +64,8 @@ public class Main {
 
     public void run() {
         DateTimeFormatter formatter = DateTimeFormatter.ISO_ZONED_DATE_TIME;
-        log.info("Parsed arguments: path={}, from={}, to={}, format={}, filterField={}, filterValue={}", path, fromStr, toStr, format, filterField, filterValue);
+        log.info("Parsed arguments: path={}, from={}, to={}, format={}, filterField={}, filterValue={}",
+            path, fromStr, toStr, format, filterField, filterValue);
 
         try {
             if (fromStr != null) {
@@ -82,8 +88,9 @@ public class Main {
             log.error("Invalid format: {}", format);
             return;
         }
-
-        StatisticsReport report = new StatisticsReport();
+        List<String> paths = new ArrayList<>();
+        paths.add(path); // вынести парсинг glob в другой класс
+        StatisticsReport report = new StatisticsReport(paths, from.toString(), to.toString());
         StatisticsUpdater calculator = new StatisticsUpdater(report);
         LogParser parser = new LogParser(calculator, from, to, filterField, filterValue);
 
@@ -92,10 +99,17 @@ public class Main {
             if (path.startsWith("http")) {
                 parser.parseURL(path);
             } else {
-                parser.parseFile(path);
+                parser.parseGlob(path, globalPath);
             }
         } catch (Exception e) {
             log.error("Error while parsing file/URL: {}", path, e);
+            return;
+        }
+
+        if (format.equals("adoc")) {
+            report.writeAdocFile();
+        } else {
+            report.writeMarkdownFile();
         }
 
         System.out.println("Количество запросов: " + report.requestNumber());
