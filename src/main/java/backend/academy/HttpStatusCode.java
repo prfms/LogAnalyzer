@@ -2,7 +2,9 @@ package backend.academy;
 
 import java.util.HashMap;
 import java.util.Map;
+import lombok.experimental.UtilityClass;
 
+@UtilityClass
 @SuppressWarnings("checkstyle:magicnumber")
 public class HttpStatusCode {
 

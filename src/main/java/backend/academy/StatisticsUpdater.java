@@ -15,4 +15,8 @@ public class StatisticsUpdater {
         report.addIp(nginxLog.remoteAddress());
         report.addHttpMethod(nginxLog.httpRequest().method());
     }
+
+    public void addFileName(String fileName) {
+        report.addFileName(fileName);
+    }
 }

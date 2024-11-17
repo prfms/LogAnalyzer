@@ -1,22 +1,22 @@
 package backend.academy;
 
 import com.google.common.math.Quantiles;
-import lombok.Getter;
-import lombok.Setter;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import lombok.Getter;
+import lombok.Setter;
+import lombok.extern.log4j.Log4j2;
 
 @Getter @Setter
+@Log4j2
 public class StatisticsReport {
-    private static final Logger LOG = LoggerFactory.getLogger(StatisticsReport.class);
     private List<String> fileNames = new ArrayList<>();
     private String from;
     private String to;
@@ -27,8 +27,10 @@ public class StatisticsReport {
     private List<Map.Entry<String, Integer>> mostFrequentHttpMethod;
     private List<Integer> answerSize;
     private long totalAnswerSize;
+    private static final int TOP_FREQUENT_LENGTH = 3;
+    private static final int PERCENTILE = 95;
 
-    public StatisticsReport(List<String> fileNames, String from, String to) {
+    public StatisticsReport(String from, String to) {
         mostFrequentSources = new ArrayList<>();
         mostFrequentAnswerCode = new ArrayList<>();
         mostFrequentIp = new ArrayList<>();
@@ -36,7 +38,6 @@ public class StatisticsReport {
         mostFrequentHttpMethod = new ArrayList<>();
         totalAnswerSize = 0L;
         requestNumber = 0L;
-        this.fileNames = fileNames;
         this.from = from;
         this.to = to;
     }
@@ -67,7 +68,12 @@ public class StatisticsReport {
         );
     }
 
-    private void generateGeneralInfo(FileWriter writer, String header, String separator, String endOfTable) throws IOException {
+    private void generateGeneralInfo(
+        FileWriter writer,
+        String header,
+        String separator,
+        String endOfTable
+    ) throws IOException {
         writer.write(String.format("""
             %s
             | Metrics                   | Value
@@ -84,14 +90,20 @@ public class StatisticsReport {
             fileNames, from, to,
             requestNumber,
             getAverageAnswerSize(),
-            percentileSizeAnswer(95),
+            percentileSizeAnswer(PERCENTILE),
             endOfTable));
     }
 
-    private void generateSourceFrequency(FileWriter writer, String header, String separator, String endOfTable) throws IOException {
+    private void generateSourceFrequency(
+        FileWriter writer,
+        String header,
+        String separator,
+        String endOfTable
+    ) throws IOException {
         List<Map.Entry<String, Integer>> frequentSource = getMostFrequentSources();
+
         if (frequentSource.isEmpty()) {
-            writer.write(String.format("%s\nNo data available for source frequency.\n%s\n", header, endOfTable));
+            writer.write(String.format("%s%nNo data available for source frequency.%n%s%n", header, endOfTable));
             return;
         }
 
@@ -101,22 +113,27 @@ public class StatisticsReport {
             %s
             """, header, separator));
 
-        int limit = Math.min(frequentSource.size(), 3);
+        int limit = Math.min(frequentSource.size(), TOP_FREQUENT_LENGTH);
         for (int i = 0; i < limit; i++) {
             Map.Entry<String, Integer> entry = frequentSource.get(i);
             String source = entry.getKey();
             int frequency = entry.getValue();
 
-            writer.write(String.format("| %-27s | %-9d\n", source, frequency));
+            writer.write(String.format("| %-27s | %-9d%n", source, frequency));
         }
 
         writer.write(endOfTable + "\n");
     }
 
-    private void generateCodeInfo(FileWriter writer, String header, String separator, String endOfTable) throws IOException {
+    private void generateCodeInfo(
+        FileWriter writer,
+        String header,
+        String separator,
+        String endOfTable
+    ) throws IOException {
         List<Map.Entry<Integer, Integer>> frequentCode = getMostFrequentAnswerCode();
         if (frequentCode.isEmpty()) {
-            writer.write(String.format("%s\nNo data available for code frequency.\n%s\n", header, endOfTable));
+            writer.write(String.format("%s%nNo data available for code frequency.%n%s%n", header, endOfTable));
             return;
         }
 
@@ -126,23 +143,29 @@ public class StatisticsReport {
             %s
             """, header, separator));
 
-        int limit = Math.min(frequentCode.size(), 3);
+        int limit = Math.min(frequentCode.size(), TOP_FREQUENT_LENGTH);
         for (int i = 0; i < limit; i++) {
             Map.Entry<Integer, Integer> entry = frequentCode.get(i);
             int code = entry.getKey();
             int frequency = entry.getValue();
             String meaning = HttpStatusCode.getStatusMessage(code);
 
-            writer.write(String.format("| %-4d | %-27s | %-9d\n", code, meaning, frequency));
+            writer.write(String.format("| %-4d | %-27s | %-9d%n", code, meaning, frequency));
         }
 
         writer.write(endOfTable + "\n");
     }
 
-    private void generateIpFrequency(FileWriter writer, String header, String separator, String endOfTable) throws IOException {
+    private void generateIpFrequency(
+        FileWriter writer,
+        String header,
+        String separator,
+        String endOfTable
+    ) throws IOException {
         List<Map.Entry<String, Integer>> frequentIps = getMostFrequentIp();
+
         if (frequentIps.isEmpty()) {
-            writer.write(String.format("%s\nNo data available for IP frequency.\n%s\n", header, endOfTable));
+            writer.write(String.format("%s%nNo data available for IP frequency.%n%s%n", header, endOfTable));
             return;
         }
 
@@ -152,18 +175,24 @@ public class StatisticsReport {
             %s
             """, header, separator));
 
-        for (int i = 0; i < Math.min(frequentIps.size(), 3); i++) {
+        for (int i = 0; i < Math.min(frequentIps.size(), TOP_FREQUENT_LENGTH); i++) {
             Map.Entry<String, Integer> entry = frequentIps.get(i);
-            writer.write(String.format("| %-25s | %-10d\n", entry.getKey(), entry.getValue()));
+            writer.write(String.format("| %-27s | %-10d%n", entry.getKey(), entry.getValue()));
         }
 
         writer.write(endOfTable + "\n");
     }
 
-    private void generateMethodFrequency(FileWriter writer, String header, String separator, String endOfTable) throws IOException {
+    private void generateMethodFrequency(
+        FileWriter writer,
+        String header,
+        String separator,
+        String endOfTable
+    ) throws IOException {
         List<Map.Entry<String, Integer>> methodFrequency = getHttpMethodFrequency();
+
         if (methodFrequency.isEmpty()) {
-            writer.write(String.format("%s\nNo data available for HTTP methods.\n%s\n", header, endOfTable));
+            writer.write(String.format("%s%nNo data available for HTTP methods.%n%s%n", header, endOfTable));
             return;
         }
 
@@ -173,14 +202,15 @@ public class StatisticsReport {
             %s
             """, header, separator));
 
-        for (int i = 0; i < Math.min(methodFrequency.size(), 3); i++) {
+        for (int i = 0; i < Math.min(methodFrequency.size(), TOP_FREQUENT_LENGTH); i++) {
             Map.Entry<String, Integer> entry = methodFrequency.get(i);
-            writer.write(String.format("| %-25s | %-10d\n", entry.getKey(), entry.getValue()));
+            writer.write(String.format("| %-25s | %-10d%n", entry.getKey(), entry.getValue()));
         }
 
         writer.write(endOfTable + "\n");
     }
 
+    @SuppressWarnings("checkstyle:parameternumber")
     private void generateReport(
         String filePath,
         String generalHeader,
@@ -192,35 +222,34 @@ public class StatisticsReport {
         String ipHeader
     ) {
         File file = new File(filePath);
-        try (FileWriter writer = new FileWriter(file)) {
+        try (FileWriter writer = new FileWriter(file, StandardCharsets.UTF_8)) {
             generateGeneralInfo(writer, generalHeader, separator, endOfTable);
             generateSourceFrequency(writer, requestHeader, separator, endOfTable);
             generateCodeInfo(writer, codeHeader, codeSeparator, endOfTable);
             generateIpFrequency(writer, ipHeader, separator, endOfTable);
             generateMethodFrequency(writer, requestHeader, separator, endOfTable);
         } catch (IOException e) {
-            LOG.error("Error writing report to file: ", e);
+            log.error("Error writing report to file: ", e);
         }
     }
 
-
     public List<Map.Entry<Integer, Integer>> getMostFrequentAnswerCode() {
-        mostFrequentAnswerCode.sort((a,b) -> b.getValue() - a.getValue());
+        mostFrequentAnswerCode.sort((a, b) -> b.getValue() - a.getValue());
         return mostFrequentAnswerCode;
     }
 
     public List<Map.Entry<String, Integer>> getMostFrequentSources() {
-        mostFrequentSources.sort((a,b) -> b.getValue() - a.getValue());
+        mostFrequentSources.sort((a, b) -> b.getValue() - a.getValue());
         return mostFrequentSources;
     }
 
     public List<Map.Entry<String, Integer>> getMostFrequentIp() {
-        mostFrequentIp.sort((a,b) -> b.getValue() - a.getValue());
+        mostFrequentIp.sort((a, b) -> b.getValue() - a.getValue());
         return mostFrequentIp;
     }
 
     private List<Map.Entry<String, Integer>> getHttpMethodFrequency() {
-        mostFrequentHttpMethod.sort((a,b) -> b.getValue() - a.getValue());
+        mostFrequentHttpMethod.sort((a, b) -> b.getValue() - a.getValue());
         return mostFrequentHttpMethod;
     }
 
@@ -253,7 +282,7 @@ public class StatisticsReport {
         totalAnswerSize += size;
     }
 
-    public double percentileSizeAnswer(double percentile) {
+    public double percentileSizeAnswer(int percentile) {
         return percentile(answerSize, percentile);
     }
 
@@ -262,17 +291,17 @@ public class StatisticsReport {
             .filter(entry -> entry.getKey().equals(key))
             .findFirst();
 
-        if (existingEntry.isPresent()) {
-            Map.Entry<T, Integer> entry = existingEntry.get();
-            list.remove(entry);
-            list.add(Map.entry(key, entry.getValue() + 1));
-        } else {
-            list.add(Map.entry(key, 1));
-        }
+        Map.Entry<T, Integer> entry = existingEntry.orElseGet(() -> Map.entry(key, 0));
+        list.remove(entry);
+        list.add(Map.entry(key, entry.getValue() + 1));
     }
 
-    private double percentile(List<Integer> list, double percentile) {
+    private double percentile(List<Integer> list, int percentile) {
         list.sort(Comparator.comparingInt(a -> a));
-        return Quantiles.percentiles().index(95).compute(list);
+        return Quantiles.percentiles().index(percentile).compute(list);
+    }
+
+    public void addFileName(String fileName) {
+        fileNames.add(fileName);
     }
 }

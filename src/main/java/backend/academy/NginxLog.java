@@ -9,7 +9,6 @@ public class NginxLog {
     private String remoteAddress;
     private String remoteUser;
     private ZonedDateTime localTime;
-    @Getter @Setter
     private HttpRequest httpRequest;
     private int status;
     private int bytesSent;

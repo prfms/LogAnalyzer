@@ -3,6 +3,7 @@ package backend.academy;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.StringReader;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -13,7 +14,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
-import java.net.URI;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.time.ZonedDateTime;
@@ -38,17 +38,27 @@ public class LogParser {
     private final String filterField;
     private String filterValue;
 
+
     public LogParser(
         StatisticsUpdater updater,
         ZonedDateTime from,
         ZonedDateTime to,
         String filterField,
-        String filterValue) {
+        String filterValue
+    ) {
         this.statisticsUpdater = updater;
         this.from = from;
         this.to = to;
         this.filterField = filterField;
         this.filterValue = filterValue;
+    }
+
+    public void run(String input) {
+        if (input.startsWith("http")) {
+            parseURL(input);
+        } else {
+            parseGlob(input);
+        }
     }
 
     private final Map<String, Predicate<NginxLog>> filterPredicates = Map.of(
@@ -61,15 +71,28 @@ public class LogParser {
         "agent", log -> log.httpUserAgent() != null && log.httpUserAgent().contains(filterValue)
     );
 
-    private NginxLog parse(String singleLog) {
+    public NginxLog parse(String singleLog) {
+        final int REMOTE_ADDRESS_GROUP = 1;
+        final int REMOTE_USER_GROUP = 2;
+        final int TIME_LOCAL_GROUP = 3;
+        final int REQUEST_METHOD_GROUP = 4;
+        final int REQUEST_URI_GROUP = 5;
+        final int REQUEST_PROTOCOL_GROUP = 6;
+        final int STATUS_GROUP = 7;
+        final int BYTES_SENT_GROUP = 8;
+        final int REFERER_GROUP = 9;
+        final int USER_AGENT_GROUP = 10;
+
         Matcher matcher = PATTERN.matcher(singleLog);
 
         if (matcher.find()) {
             NginxLog nginxLog = new NginxLog();
-            nginxLog.remoteAddress(matcher.group(1));
-            nginxLog.remoteUser(matcher.group(2).isEmpty() || matcher.group(2).equals("-") ? null : matcher.group(2));
+            nginxLog.remoteAddress(matcher.group(REMOTE_ADDRESS_GROUP));
+            nginxLog.remoteUser(matcher.group(REMOTE_USER_GROUP).isEmpty()
+                || "-".equals(matcher.group(REMOTE_USER_GROUP)) ? null
+                : matcher.group(REMOTE_USER_GROUP));
 
-            String timeString = matcher.group(3);
+            String timeString = matcher.group(TIME_LOCAL_GROUP);
             DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/LLL/yyyy:HH:mm:ss Z", Locale.ENGLISH);
             try {
                 nginxLog.localTime(ZonedDateTime.parse(timeString, formatter));
@@ -77,39 +100,51 @@ public class LogParser {
                 log.error("Incorrect time format {}", timeString, e);
             }
 
-            nginxLog.httpRequest(new NginxLog.HttpRequest(matcher.group(4), matcher.group(5), matcher.group(6)));
+            nginxLog.httpRequest(new NginxLog.HttpRequest(
+                matcher.group(REQUEST_METHOD_GROUP),
+                matcher.group(REQUEST_URI_GROUP),
+                matcher.group(REQUEST_PROTOCOL_GROUP)
+            ));
 
-            nginxLog.status(Integer.parseInt(matcher.group(7)));
-            nginxLog.bytesSent(Integer.parseInt(matcher.group(8)));
-            nginxLog.httpReferer(matcher.group(9).equals("-") ? null : matcher.group(9));
-            nginxLog.httpUserAgent(matcher.group(10));
+            nginxLog.status(Integer.parseInt(matcher.group(STATUS_GROUP)));
+            nginxLog.bytesSent(Integer.parseInt(matcher.group(BYTES_SENT_GROUP)));
+            nginxLog.httpReferer("-".equals(matcher.group(REFERER_GROUP)) ? null : matcher.group(REFERER_GROUP));
+            nginxLog.httpUserAgent(matcher.group(USER_AGENT_GROUP));
 
             return nginxLog;
         } else {
-            throw new IllegalArgumentException("Строка не соответствует формату лога Nginx.");
+            throw new IllegalArgumentException("String does not match Nginx pattern");
         }
     }
 
-    public void parseGlob(String glob, String location) throws IOException {
+    public void parseGlob(String glob) {
         final PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher(
-            glob);
+            "glob:" + glob);
 
-        Files.walkFileTree(Paths.get(location), new SimpleFileVisitor<>() {
+        try {
+            Files.walkFileTree(Paths.get("."), new SimpleFileVisitor<>() {
 
-            @Override
-            public FileVisitResult visitFile(Path path,
-                BasicFileAttributes attrs) {
-                if (pathMatcher.matches(path)) {
-                    parseFile(path.toString());
+                @Override
+                public FileVisitResult visitFile(
+                    Path path,
+                    BasicFileAttributes attrs
+                ) {
+                    if (pathMatcher.matches(path)) {
+                        String fileName = path.toString();
+                        statisticsUpdater.addFileName(fileName);
+                        parseFile(fileName);
+                    }
+                    return FileVisitResult.CONTINUE;
                 }
-                return FileVisitResult.CONTINUE;
-            }
 
-            @Override
-            public FileVisitResult visitFileFailed(Path file, IOException exc) {
-                return FileVisitResult.CONTINUE;
-            }
-        });
+                @Override
+                public FileVisitResult visitFileFailed(Path file, IOException exc) {
+                    return FileVisitResult.CONTINUE;
+                }
+            });
+        } catch (IOException e) {
+            log.error("Error while parsing glob {}", glob, e);
+        }
     }
 
     public void parseFile(String fileName) {
@@ -150,7 +185,7 @@ public class LogParser {
         if (from != null) {
              filteredStream = stream.filter(log -> log.localTime().isAfter(from));
               if (to != null) {
-                  filteredStream = filteredStream.filter(log -> log.localTime().isAfter(to));
+                  filteredStream = filteredStream.filter(log -> log.localTime().isBefore(to));
               }
         }
 
@@ -164,7 +199,7 @@ public class LogParser {
         return filteredStream;
     }
 
-    private void parseStrings(Stream<String> source) {
+    public void parseStrings(Stream<String> source) {
         filterLogs(source.map(this::parse)).forEach(statisticsUpdater::updateStatistics);
     }
 }

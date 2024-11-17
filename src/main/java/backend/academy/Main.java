@@ -2,17 +2,19 @@ package backend.academy;
 
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
-import lombok.extern.log4j.Log4j2;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
-import java.util.ArrayList;
-import java.util.List;
+import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 public class Main {
+
+    private static final String MARKDOWN = "markdown";
+    private static final String ADOC = "adoc";
+
     @Parameter(names = "--path", description = "Path to one or more NGINX log files", required = true)
     private static String path = null;
 
@@ -27,10 +29,11 @@ public class Main {
     private ZonedDateTime to = null;
 
     @Parameter(names = "--format", description = "Output format: markdown or adoc")
-    private static String format = "markdown";
+    private static String format = MARKDOWN;
 
     @Parameter(names = "--filter-field",
-        description = "Field of nginx log to apply filter to. Options: address, user, method, source, status, referer, agent")
+        description = "Field of nginx log to apply filter to. "
+            + "Options: address, user, method, source, status, referer, agent")
     private static String filterField = null;
 
     @Parameter(names = "--filter-value", description = "Value that must be in filter field")
@@ -39,11 +42,7 @@ public class Main {
     @Parameter(names = "--help", help = true)
     private boolean help;
 
-    private final String globalPath = ".";
-
     public static void main(String[] args) throws IOException, URISyntaxException {
-// .\src\main\resources\logs_samples.txt
-
         Main main = new Main();
         JCommander jCommander = JCommander.newBuilder()
             .addObject(main)
@@ -76,48 +75,30 @@ public class Main {
             }
         } catch (DateTimeParseException e) {
             log.error("Date parsing error: {}", e.getMessage());
-            return;
+            throw new LogParserException("Failed to parse dates", e);
         }
 
         if (path == null || path.trim().isEmpty()) {
             log.error("Path is empty!");
-            return;
+            throw new LogParserException("Path cannot be null or empty");
         }
 
-        if (!format.equals("markdown") && !format.equals("adoc")) {
+        if ((!MARKDOWN.equals(format) && !ADOC.equals(format))) {
             log.error("Invalid format: {}", format);
-            return;
+            throw new LogParserException("Unsupported format: " + format);
         }
-        List<String> paths = new ArrayList<>();
-        paths.add(path); // вынести парсинг glob в другой класс
-        StatisticsReport report = new StatisticsReport(paths, from.toString(), to.toString());
+
+        StatisticsReport report = new StatisticsReport(from.toString(), to.toString());
         StatisticsUpdater calculator = new StatisticsUpdater(report);
         LogParser parser = new LogParser(calculator, from, to, filterField, filterValue);
 
+        parser.run(path);
 
-        try {
-            if (path.startsWith("http")) {
-                parser.parseURL(path);
-            } else {
-                parser.parseGlob(path, globalPath);
-            }
-        } catch (Exception e) {
-            log.error("Error while parsing file/URL: {}", path, e);
-            return;
-        }
-
-        if (format.equals("adoc")) {
+        if (ADOC.equals(format)) {
             report.writeAdocFile();
         } else {
             report.writeMarkdownFile();
         }
-
-        System.out.println("Количество запросов: " + report.requestNumber());
-        System.out.println("Средний размер ответа: " + report.getAverageAnswerSize());
-        System.out.println("Самые частые источники запросов: " + report.getMostFrequentSources());
-        System.out.println("Самые частые коды ответа: " + report.getMostFrequentAnswerCode());
-        System.out.println("95% размера ответа сервера: " + report.percentileSizeAnswer(95));
-
     }
 }
 
