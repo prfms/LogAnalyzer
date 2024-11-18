@@ -51,6 +51,12 @@ public class LogParser {
         this.to = to;
         this.filterField = filterField;
         this.filterValue = filterValue;
+        if (from != null) {
+            updater.addFromTime(from.toString());
+        }
+        if (to != null) {
+            updater.addToTime(to.toString());
+        }
     }
 
     public void run(String input) {

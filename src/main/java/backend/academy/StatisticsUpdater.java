@@ -19,4 +19,12 @@ public class StatisticsUpdater {
     public void addFileName(String fileName) {
         report.addFileName(fileName);
     }
+
+    public void addFromTime(String from) {
+        report.addFromTime(from);
+    }
+
+    public void addToTime(String to) {
+        report.addToTime(to);
+    }
 }

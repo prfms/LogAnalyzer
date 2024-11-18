@@ -88,7 +88,7 @@ public class Main {
             throw new LogParserException("Unsupported format: " + format);
         }
 
-        StatisticsReport report = new StatisticsReport(from.toString(), to.toString());
+        StatisticsReport report = new StatisticsReport();
         StatisticsUpdater calculator = new StatisticsUpdater(report);
         LogParser parser = new LogParser(calculator, from, to, filterField, filterValue);
 

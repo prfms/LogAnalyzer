@@ -29,8 +29,9 @@ public class StatisticsReport {
     private long totalAnswerSize;
     private static final int TOP_FREQUENT_LENGTH = 3;
     private static final int PERCENTILE = 95;
+    private String outputPath = "src/main/resources/";
 
-    public StatisticsReport(String from, String to) {
+    public StatisticsReport() {
         mostFrequentSources = new ArrayList<>();
         mostFrequentAnswerCode = new ArrayList<>();
         mostFrequentIp = new ArrayList<>();
@@ -38,13 +39,11 @@ public class StatisticsReport {
         mostFrequentHttpMethod = new ArrayList<>();
         totalAnswerSize = 0L;
         requestNumber = 0L;
-        this.from = from;
-        this.to = to;
     }
 
     public void writeAdocFile() {
         generateReport(
-            "src/main/resources/report.adoc",
+            outputPath + "report.adoc",
             "=== General Information ===\n\n|===",
             "=== Frequency of Client Requests ===\n\n|===",
             "=== Answer Codes ===\n\n|===",
@@ -57,7 +56,7 @@ public class StatisticsReport {
 
     public void writeMarkdownFile() {
         generateReport(
-            "src/main/resources/report.md",
+            outputPath + "report.md",
             "### General information\n",
             "### Frequency of client requests\n",
             "### Answer codes\n",
@@ -303,5 +302,13 @@ public class StatisticsReport {
 
     public void addFileName(String fileName) {
         fileNames.add(fileName);
+    }
+
+    public void addFromTime(String from) {
+        this.from = from;
+    }
+
+    public void addToTime(String to) {
+        this.to = to;
     }
 }
