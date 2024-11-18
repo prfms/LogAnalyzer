@@ -6,9 +6,7 @@ import backend.academy.StatisticsUpdater;
 import org.junit.jupiter.api.Test;
 import java.time.ZonedDateTime;
 import java.util.stream.Stream;
-import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
