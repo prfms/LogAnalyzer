@@ -24,8 +24,8 @@ public class FileLogSource implements LogSource {
 
     private List<Path> findFilesByGlob(String globPattern) {
         final PathMatcher pathMatcher = FileSystems.getDefault().getPathMatcher("glob:" + globPattern);
-        try {
-            return Files.walk(Paths.get("."))
+        try (Stream<Path> paths = Files.walk(Paths.get("."))) {
+            return paths
                 .filter(pathMatcher::matches)
                 .onClose(() -> log.info("Stream for glob {} has been closed", globPattern)).toList();
         } catch (IOException e) {

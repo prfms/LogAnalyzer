@@ -17,6 +17,7 @@ public class Main {
 
     private static final String MARKDOWN = "markdown";
     private static final String ADOC = "adoc";
+    private static final String OUTPUT_DIRECTORY = "src/main/resources/";
 
     @Parameter(names = "--path", description = "Path to one or more NGINX log files", required = true)
     private static String path = null;
@@ -108,9 +109,9 @@ public class Main {
         logProcessor.process();
 
         if (ADOC.equals(format)) {
-            report.writeAdocFile();
+            report.writeAdocFile(OUTPUT_DIRECTORY);
         } else {
-            report.writeMarkdownFile();
+            report.writeMarkdownFile(OUTPUT_DIRECTORY);
         }
     }
 }

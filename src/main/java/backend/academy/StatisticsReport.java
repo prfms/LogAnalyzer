@@ -30,7 +30,6 @@ public class StatisticsReport {
     private long totalAnswerSize;
     private static final int TOP_FREQUENT_LENGTH = 3;
     private static final int PERCENTILE = 95;
-    private String outputPath = "src/main/resources/";
 
     public StatisticsReport(ZonedDateTime from, ZonedDateTime to) {
         mostFrequentSources = new ArrayList<>();
@@ -48,7 +47,7 @@ public class StatisticsReport {
         }
     }
 
-    public void writeAdocFile() {
+    public void writeAdocFile(String outputPath) {
         generateReport(
             outputPath + "report.adoc",
             "=== General Information ===\n\n|===",
@@ -61,7 +60,7 @@ public class StatisticsReport {
         );
     }
 
-    public void writeMarkdownFile() {
+    public void writeMarkdownFile(String outputPath) {
         generateReport(
             outputPath + "report.md",
             "### General information\n",
