@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -31,7 +32,7 @@ public class StatisticsReport {
     private static final int PERCENTILE = 95;
     private String outputPath = "src/main/resources/";
 
-    public StatisticsReport() {
+    public StatisticsReport(ZonedDateTime from, ZonedDateTime to) {
         mostFrequentSources = new ArrayList<>();
         mostFrequentAnswerCode = new ArrayList<>();
         mostFrequentIp = new ArrayList<>();
@@ -39,6 +40,12 @@ public class StatisticsReport {
         mostFrequentHttpMethod = new ArrayList<>();
         totalAnswerSize = 0L;
         requestNumber = 0L;
+        if (from != null) {
+            this.from = from.toString();
+        }
+        if (to != null) {
+            this.to = to.toString();
+        }
     }
 
     public void writeAdocFile() {
@@ -227,6 +234,7 @@ public class StatisticsReport {
             generateCodeInfo(writer, codeHeader, codeSeparator, endOfTable);
             generateIpFrequency(writer, ipHeader, separator, endOfTable);
             generateMethodFrequency(writer, requestHeader, separator, endOfTable);
+            log.info("Writing report to {}", filePath);
         } catch (IOException e) {
             log.error("Error writing report to file: ", e);
         }
@@ -296,6 +304,10 @@ public class StatisticsReport {
     }
 
     private double percentile(List<Integer> list, int percentile) {
+        if (list.isEmpty()) {
+            log.error("Empty list");
+            return 0.0;
+        }
         list.sort(Comparator.comparingInt(a -> a));
         return Quantiles.percentiles().index(percentile).compute(list);
     }

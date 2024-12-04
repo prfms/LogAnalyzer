@@ -1,5 +1,8 @@
 package backend.academy;
 
+import backend.academy.logSource.FileLogSource;
+import backend.academy.logSource.LogSource;
+import backend.academy.logSource.UrlLogSource;
 import com.beust.jcommander.JCommander;
 import com.beust.jcommander.Parameter;
 import java.io.IOException;
@@ -56,7 +59,7 @@ public class Main {
             }
             main.run();
         } catch (Exception e) {
-            log.error("Parameter exception!: {}", e.getMessage());
+            log.error("Parameter exception: {}", e.getMessage());
             jCommander.usage();
         }
     }
@@ -88,11 +91,21 @@ public class Main {
             throw new LogParserException("Unsupported format: " + format);
         }
 
-        StatisticsReport report = new StatisticsReport();
-        StatisticsUpdater calculator = new StatisticsUpdater(report);
-        LogParser parser = new LogParser(calculator, from, to, filterField, filterValue);
+        LogSource logSource;
+        if (path.startsWith("http")) {
+            logSource = new UrlLogSource(path);
+        } else {
+            logSource = new FileLogSource(path);
+        }
 
-        parser.run(path);
+        StatisticsReport report = new StatisticsReport(from, to);
+        StatisticsUpdater updater = new StatisticsUpdater(report);
+        LogFilter filter = new LogFilter(from, to, filterField, filterValue);
+        NginxLogParser parser = new NginxLogParser();
+
+        LogProcessor logProcessor = new LogProcessor(logSource, parser, filter, updater);
+
+        logProcessor.process();
 
         if (ADOC.equals(format)) {
             report.writeAdocFile();

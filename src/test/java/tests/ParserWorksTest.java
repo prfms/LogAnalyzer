@@ -1,7 +1,7 @@
 package tests;
 
-import backend.academy.LogParser;
 import backend.academy.NginxLog;
+import backend.academy.NginxLogParser;
 import org.junit.jupiter.api.Test;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
@@ -12,7 +12,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 public class ParserWorksTest {
     @Test
     public void ParserWorks() {
-        LogParser parser = new LogParser(null, null, null, null, null);
+        // Arrange
+        NginxLogParser parser = new NginxLogParser();
         String validLog = "127.0.0.1 - - [12/Dec/2024:06:25:24 +0000] \"GET /index.html HTTP/1.1\" 200 1234 \"-\" \"Mozilla/5.0\"";
 
         // Act

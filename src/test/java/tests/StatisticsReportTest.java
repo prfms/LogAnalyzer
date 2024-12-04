@@ -18,7 +18,7 @@ public class StatisticsReportTest {
         // Arrange
         Path tempFile = tempDir.resolve("report.adoc");
 
-        StatisticsReport report = new StatisticsReport();
+        StatisticsReport report = new StatisticsReport(null, null);
         report.requestNumber(10L);
 
         report.mostFrequentSources(List.of(
