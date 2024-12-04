@@ -10,7 +10,12 @@ public class LogProcessor {
     private final LogFilter logFilter;
     private final StatisticsUpdater statisticsUpdater;
 
-    public LogProcessor(LogSource logSource, NginxLogParser logParser, LogFilter logFilter, StatisticsUpdater statisticsUpdater) {
+    public LogProcessor(
+        LogSource logSource,
+        NginxLogParser logParser,
+        LogFilter logFilter,
+        StatisticsUpdater statisticsUpdater
+    ) {
         this.logSource = logSource;
         this.logParser = logParser;
         this.logFilter = logFilter;

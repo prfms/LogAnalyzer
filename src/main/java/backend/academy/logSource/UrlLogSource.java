@@ -24,7 +24,7 @@ public class UrlLogSource implements LogSource {
 
     @Override
     public Stream<String> getLogs() {
-        try ( HttpClient client = HttpClient.newHttpClient()) {
+        try (HttpClient client = HttpClient.newHttpClient()) {
             HttpRequest request = HttpRequest.newBuilder()
                 .uri(uri)
                 .GET()

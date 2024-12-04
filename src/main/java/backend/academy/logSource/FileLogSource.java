@@ -1,9 +1,5 @@
 package backend.academy.logSource;
 
-import lombok.Getter;
-import lombok.extern.log4j.Log4j2;
-import java.util.ArrayList;
-import java.util.List;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.FileSystems;
@@ -11,7 +7,11 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.PathMatcher;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.stream.Stream;
+import lombok.Getter;
+import lombok.extern.log4j.Log4j2;
 
 @Getter
 @Log4j2

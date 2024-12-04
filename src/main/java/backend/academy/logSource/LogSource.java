@@ -5,5 +5,6 @@ import java.util.stream.Stream;
 
 public interface LogSource {
     Stream<String> getLogs();
+
     List<String> getName();
 }

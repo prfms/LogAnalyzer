@@ -1,12 +1,12 @@
 package backend.academy;
 
-import lombok.extern.log4j.Log4j2;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import lombok.extern.log4j.Log4j2;
 
 @Log4j2
 public class NginxLogParser {
