@@ -21,7 +21,7 @@ mvn clean verify
 
 Альтернативно можно в терминале из корня проекта выполнить следующие команды.
 
-Для Unix (Linux, macOS, Cygwin, WSL):
+Для Unix:
 
 ```shell
 ./mvnw clean verify
